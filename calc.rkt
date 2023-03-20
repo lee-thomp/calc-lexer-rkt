@@ -1,4 +1,4 @@
-#lang racket
+#lang racket/base
 
 ;;; Simple parser for infix calculations
 ;;; 
