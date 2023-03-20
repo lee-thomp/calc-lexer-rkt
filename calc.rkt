@@ -100,14 +100,13 @@
    (format "~A => ~%  ~A~%~%" str (infix->prefix 
                                    (calc-lexer (open-input-string str))))))
 
+(define test-string-list
+  '("1 + (4 - 3) / (7 ^ 3)"
+    "(1 + (4 - 3) / (7 ^ 3))"
+    "π * (r ^ 2)"))
+
 (define (lex-test-all)
-  (begin
-   (print-lex-test "1 + (4 - 3) / (7 ^ 3)")
-   (print-lex-test "(1 + (4 - 3) / (7 ^ 3))")
-   (print-lex-test "π * (r ^ 2)")))
+  (map print-lex-test test-string-list))
 
 (define (calc-test-all)
-  (begin
-   (print-calc-test "1 + (4 - 3) / (7 ^ 3)")
-   (print-calc-test "(1 + (4 - 3) / (7 ^ 3))")
-   (print-calc-test "π * (r ^ 2)")))
+  (map print-calc-test test-string-list))
