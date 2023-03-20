@@ -7,35 +7,51 @@
 (require parser-tools/lex)
 (require (prefix-in : parser-tools/lex-sre))
 
-(define (wrap-lexer input n)
-  (define calc-lexer
-    (lexer
-      [(:+ (char-range #\a #\z) (char-range #\A #\Z))
-       (cons `(ID ,(string->symbol lexeme))
-            (wrap-lexer input-port n))]
-    
-     [(:: (:? #\-) (:+ (char-range #\0 #\9)))
-      (cons `(INT ,(string->number lexeme))
-             (wrap-lexer input-port n))]
-    
-     [(:or #\+ #\- #\/ #\* #\^)
-      (cons `(OP ,(string->symbol lexeme))
-            (wrap-lexer input-port n))]
-    
-     [#\(
-      (cons `(LPAREN ,n)
-       (wrap-lexer input-port (+ 1 n)))]
-    
-     [#\)
-      (cons `(RPAREN ,(- n 1))
-       (wrap-lexer input-port (- n 1)))]
+;; Top level lexer proc
+(define (calc-lexer input)
 
-     [whitespace
-      (wrap-lexer input-port n)]
+  ;; A wrapper for the core lexer that tracks paren indentation
+  ;;  Param `n` increases as lparens are lexed, and decremented on rparens
+  (define (calc-lexer-wrapper input n)
 
-     [(eof)
-      '()]))
-  (calc-lexer input))
+    ;; The core lexer itself
+    (define calc-lexer-core
+      (lexer
+
+       ;; Symbolic values
+       [(:+ (char-range #\a #\z) (char-range #\A #\Z))
+        (cons `(ID ,(string->symbol lexeme))
+             (calc-lexer-wrapper input-port n))]
+    
+       ;; Integer literals
+       [(:: (:? #\-) (:+ (char-range #\0 #\9)))
+        (cons `(INT ,(string->number lexeme))
+               (calc-lexer-wrapper input-port n))]
+    
+       ;; Operands + - / * ^
+       [(:or #\+ #\- #\/ #\* #\^)
+        (cons `(OP ,(string->symbol lexeme))
+              (calc-lexer-wrapper input-port n))]
+    
+       ;; Opening parens
+       [#\(
+        (cons `(LPAREN ,n)
+         (calc-lexer-wrapper input-port (+ n 1)))]
+    
+       ;; Closing parens
+       [#\)
+        (cons `(RPAREN ,(- n 1))
+         (calc-lexer-wrapper input-port (- n 1)))]
+
+       ;; Ignore whitespace
+       [whitespace
+        (calc-lexer-wrapper input-port n)]
+
+       ;; End list with empty list
+       [(eof)
+        '()]))
+    (calc-lexer-core input))
+  (calc-lexer-wrapper input 0))
 
 (define (infix->prefix exp)
   (match exp
@@ -63,12 +79,12 @@
 
 (define (print-lex-test str)
   (display 
-   (format "~A => ~%  ~A~%~%" str (wrap-lexer (open-input-string str) 0))))
+   (format "~A => ~%  ~A~%~%" str (calc-lexer (open-input-string str)))))
 
 (define (print-calc-test str)
   (display 
    (format "~A => ~%  ~A~%~%" str (infix->prefix 
-                                   (wrap-lexer (open-input-string str) 0)))))
+                                   (calc-lexer (open-input-string str))))))
 
 (define (lex-test-all)
   (begin (print-lex-test "1 + (4 - 3)")
