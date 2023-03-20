@@ -4,6 +4,7 @@
 ;;; 
 ;;; [https://matt.might.net/articles/lexers-in-racket/]
 
+(require racket/match) ;; Not included in racket/base
 (require parser-tools/lex)
 (require (prefix-in : parser-tools/lex-sre))
 
