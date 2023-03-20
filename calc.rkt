@@ -7,83 +7,84 @@
 (require parser-tools/lex)
 (require (prefix-in : parser-tools/lex-sre))
 
-;; Top level lexer proc
+;; Top level lexer proc.
 (define (calc-lexer input)
 
-  ;; A wrapper for the core lexer that tracks paren indentation
-  ;;  Param `n` increases as lparens are lexed, and decremented on rparens
+  ;; A wrapper for the core lexer that tracks paren indentation.
+  ;;  Param `n` increases as lparens are lexed, and decremented on rparens.
   (define (calc-lexer-wrapper input n)
 
-    ;; The core lexer itself
+    ;; The core lexer itself.
     (define calc-lexer-core
       (lexer
 
-       ;; Symbolic values
+       ;; Symbolic values.
        [(:+ (char-range #\a #\z) (char-range #\A #\Z))
         (cons `(ID ,(string->symbol lexeme))
              (calc-lexer-wrapper input-port n))]
     
-       ;; Integer literals
+       ;; Integer literals.
        [(:: (:? #\-) (:+ (char-range #\0 #\9)))
         (cons `(INT ,(string->number lexeme))
                (calc-lexer-wrapper input-port n))]
     
-       ;; Operands + - / * ^
+       ;; Operands + - / * ^.
        [(:or #\+ #\- #\/ #\* #\^)
         (cons `(OP ,(string->symbol lexeme))
               (calc-lexer-wrapper input-port n))]
     
-       ;; Opening parens
+       ;; Opening parens.
        [#\(
         (cons `(LPAREN ,n)
          (calc-lexer-wrapper input-port (+ n 1)))]
     
-       ;; Closing parens
+       ;; Closing parens.
        [#\)
         (cons `(RPAREN ,(- n 1))
          (calc-lexer-wrapper input-port (- n 1)))]
 
-       ;; Ignore whitespace
+       ;; Ignore whitespace.
        [whitespace
         (calc-lexer-wrapper input-port n)]
 
-       ;; End list with empty list
+       ;; End lex list with '().
        [(eof)
         '()]))
     (calc-lexer-core input))
   (calc-lexer-wrapper input 0))
 
 ;; Takes the output tree from a lexed infix expression and rearranges into prefix
-;;  that can (hopefully) be `eval`ed
+;;  that can (hopefully) be `eval`ed. Note for matching parenthesised expressions
+;;  then `n` is used to track nesting but is ultimately discarded.
 (define (infix->prefix exp)
   (match exp
 
-    ;; De-tokenise integer literals
+    ;; De-tokenise integer literals.
     [`((INT ,x)) x]
 
     ;; De-tokenise integers, pull operand to front of expression,
-    ;;  operate on rest
-    [`((INT ,x) (OP ,y) ,z ...)
-     `(,y ,x ,(infix->prefix `(,@z)))]
+    ;;  operate on rest.
+    [`((INT ,x) (OP ,op) ,rest ...)
+     `(,op ,x ,(infix->prefix `(,@rest)))]
 
-    ;; De-tokenise symbol literals
+    ;; De-tokenise symbol literals.
     [`((ID ,x)) x]
 
     ;; De-tokenise symbols, pull operand to front of expression,
-    ;;  operate on rest
-    [`((ID ,x) (OP ,y) ,z ...)
-     `(,y ,x ,(infix->prefix `(,@z)))]
+    ;;  operate on rest.
+    [`((ID ,x) (OP ,op) ,rest ...)
+     `(,op ,x ,(infix->prefix `(,@rest)))]
     
     ;; Rearrange parenthesised expressions, convert expression inside parens
-    ;;  and then expressions after
-    [`((LPAREN ,n) ,x ... (RPAREN ,n) (OP ,y) ,z ...)
-     `(,y ,(infix->prefix `(,@x)) ,(infix->prefix `(,@z)))]
+    ;;  and then expressions after.
+    [`((LPAREN ,n) ,exp ... (RPAREN ,n) (OP ,op) ,rest ...)
+     `(,op ,(infix->prefix `(,@exp)) ,(infix->prefix `(,@rest)))]
     
-    ;; Rearrange parenthesised expressions, convert expression inside parens
-    [`((LPAREN ,n) ,x ... (RPAREN ,n))
-     (infix->prefix `(,@x))]
+    ;; Rearrange parenthesised expressions, convert expression inside parens.
+    [`((LPAREN ,n) ,exp ... (RPAREN ,n))
+     (infix->prefix `(,@exp))]
     
-    ;; Catch erroneous expressions
+    ;; Catch erroneous expressions.
     [else 
      (begin (display (format "exp unknown: ~A\n" exp))
       exp)]))
