@@ -30,8 +30,8 @@
         (cons `(INT ,(string->number lexeme))
               (calc-lexer-wrapper input-port n))]
   
-       ;; Operands + - / * ^.
-       [(:or #\+ #\- #\/ #\* #\^)
+       ;; Operands + - / * ^ =.
+       [(:or #\+ #\- #\/ #\* #\^ #\=)
         (cons `(OP ,(string->symbol lexeme))
               (calc-lexer-wrapper input-port n))]
   
@@ -103,7 +103,8 @@
 (define test-string-list
   '("1 + (4 - 3) / (7 ^ 3)"
     "(1 + (4 - 3) / (7 ^ 3))"
-    "π * (r ^ 2)"))
+    "π * (r ^ 2)"
+    "(e ^ (π * i)) = 0"))
 
 (define (lex-test-all)
   (map print-lex-test test-string-list))
