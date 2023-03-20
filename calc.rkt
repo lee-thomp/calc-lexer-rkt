@@ -20,34 +20,35 @@
       (lexer
 
        ;; Symbolic values.
-       [(:+ (char-range #\a #\z) (char-range #\A #\Z))
+       [(:+ (char-range #\a #\z) (char-range #\A #\Z)
+            (char-range #\α #\ω) (char-range #\Α #\Ω))
         (cons `(ID ,(string->symbol lexeme))
-             (calc-lexer-wrapper input-port n))]
-    
+              (calc-lexer-wrapper input-port n))]
+  
        ;; Integer literals.
        [(:: (:? #\-) (:+ (char-range #\0 #\9)))
         (cons `(INT ,(string->number lexeme))
-               (calc-lexer-wrapper input-port n))]
-    
+              (calc-lexer-wrapper input-port n))]
+  
        ;; Operands + - / * ^.
        [(:or #\+ #\- #\/ #\* #\^)
         (cons `(OP ,(string->symbol lexeme))
               (calc-lexer-wrapper input-port n))]
-    
+  
        ;; Opening parens.
        [#\(
         (cons `(LPAREN ,n)
-         (calc-lexer-wrapper input-port (+ n 1)))]
-    
+           (calc-lexer-wrapper input-port (+ n 1)))]
+  
        ;; Closing parens.
        [#\)
         (cons `(RPAREN ,(- n 1))
-         (calc-lexer-wrapper input-port (- n 1)))]
-
+           (calc-lexer-wrapper input-port (- n 1)))]
+  
        ;; Ignore whitespace.
        [whitespace
         (calc-lexer-wrapper input-port n)]
-
+  
        ;; End lex list with '().
        [(eof)
         '()]))
@@ -100,13 +101,13 @@
                                    (calc-lexer (open-input-string str))))))
 
 (define (lex-test-all)
-  (begin (print-lex-test "1 + (4 - 3)")
-   (print-lex-test "1 + (4 - 3) / 7")
+  (begin
    (print-lex-test "1 + (4 - 3) / (7 ^ 3)")
-   (print-lex-test "(1 + (4 - 3) / (7 ^ 3))")))
+   (print-lex-test "(1 + (4 - 3) / (7 ^ 3))")
+   (print-lex-test "π * (r ^ 2)")))
 
 (define (calc-test-all)
- (begin (print-calc-test "1 + (4 - 3)")
-   (print-calc-test "1 + (4 - 3) / 7")
+  (begin
    (print-calc-test "1 + (4 - 3) / (7 ^ 3)")
-   (print-calc-test "(1 + (4 - 3) / (7 ^ 3))")))
+   (print-calc-test "(1 + (4 - 3) / (7 ^ 3))")
+   (print-calc-test "π * (r ^ 2)")))
