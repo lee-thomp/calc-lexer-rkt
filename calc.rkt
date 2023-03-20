@@ -1,6 +1,6 @@
 #lang racket/base
 
-;;; Simple parser for infix calculations
+;;; Simple infix math lexer and rearranger into prefix math.
 ;;; 
 ;;; [https://matt.might.net/articles/lexers-in-racket/]
 
@@ -53,26 +53,37 @@
     (calc-lexer-core input))
   (calc-lexer-wrapper input 0))
 
+;; Takes the output tree from a lexed infix expression and rearranges into prefix
+;;  that can (hopefully) be `eval`ed
 (define (infix->prefix exp)
   (match exp
-    [(? symbol?) exp]
 
+    ;; De-tokenise integer literals
     [`((INT ,x)) x]
 
+    ;; De-tokenise integers, pull operand to front of expression,
+    ;;  operate on rest
     [`((INT ,x) (OP ,y) ,z ...)
      `(,y ,x ,(infix->prefix `(,@z)))]
 
+    ;; De-tokenise symbol literals
     [`((ID ,x)) x]
 
+    ;; De-tokenise symbols, pull operand to front of expression,
+    ;;  operate on rest
     [`((ID ,x) (OP ,y) ,z ...)
      `(,y ,x ,(infix->prefix `(,@z)))]
     
+    ;; Rearrange parenthesised expressions, convert expression inside parens
+    ;;  and then expressions after
     [`((LPAREN ,n) ,x ... (RPAREN ,n) (OP ,y) ,z ...)
      `(,y ,(infix->prefix `(,@x)) ,(infix->prefix `(,@z)))]
     
+    ;; Rearrange parenthesised expressions, convert expression inside parens
     [`((LPAREN ,n) ,x ... (RPAREN ,n))
      (infix->prefix `(,@x))]
     
+    ;; Catch erroneous expressions
     [else 
      (begin (display (format "exp unknown: ~A\n" exp))
       exp)]))
@@ -93,7 +104,7 @@
    (print-lex-test "(1 + (4 - 3) / (7 ^ 3))")))
 
 (define (calc-test-all)
-  (begin (print-calc-test "1 + (4 - 3)")
+ (begin (print-calc-test "1 + (4 - 3)")
    (print-calc-test "1 + (4 - 3) / 7")
    (print-calc-test "1 + (4 - 3) / (7 ^ 3)")
    (print-calc-test "(1 + (4 - 3) / (7 ^ 3))")))
